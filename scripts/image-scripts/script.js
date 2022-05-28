@@ -3,6 +3,7 @@ const fs = require('fs');
 const sizeOf = require('image-size');
 const { joinImages } = require('join-images');
 const PNG = require('pngjs').PNG;
+const cliProgress = require('cli-progress');
 const { 
   songsWithPageSeeping, 
   songWithTwoPages, 
@@ -28,7 +29,7 @@ async function cropImage(imgPath, newFilePath, region) {
   return cropped.toFile(newFilePath);
 }
 
-function getCropImagePromiseArray() {
+function getCropImagePromiseArray(calculatingWhiteSpaceBar, croppingBar) {
   return fs.readdirSync(sfogFolderPath).map((image, index) => {
     // don't include the first 16 pages and the last page
     if (![...Array(16).keys(), 283].includes(index)) {
@@ -48,16 +49,24 @@ function getCropImagePromiseArray() {
         width: imageSize.width - leftWhitespace - rightWhitespace,
         height: imageSize.height - topWhitespace - bottomWhitespace
       };
-      console.log(index)
-      return cropImage(imagePath, newFilePath, region).then(() => console.log('done'));
+      calculatingWhiteSpaceBar.increment();
+      return cropImage(imagePath, newFilePath, region).then(() => croppingBar.increment());
     }
   })
 }
 
 async function main() {
-  const cropPromises = getCropImagePromiseArray();
+  const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+  const bar2 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+  bar1.start(267, 0);
+  const cropPromises = getCropImagePromiseArray(bar1, bar2);
+  bar1.stop();
+
+  
   console.log('Start cropping');
-  console.log(await Promise.all(cropPromises));
+  bar2.start(267, 0);
+  await Promise.all(cropPromises);
+  bar2.stop();
   console.log('Finished cropping');
 
   // if (fs.existsSync(finalImagePath)) {
