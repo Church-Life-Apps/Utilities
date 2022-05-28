@@ -10,27 +10,14 @@ const {
   pageWithTwoSongs, 
   pageWithThreeSongs 
 } = require('./constants');
-let xd = fs.readFileSync('SFOG_010.png');
-const png = PNG.sync.read(xd);
-const pngData = png.data
-const array = []
-for (let i = 0; i < pngData.length; i += 4) {
-  array.push([pngData[i], pngData[i + 1], pngData[i + 2]].every((num) => num === 255))
-}
-const chunked = []
-for (let i = 0; i < array.length; i += png.width) {
-  const chunk = array.slice(i, i + png.width);
-  chunked.push(chunk.every((isWhite) => isWhite))
-}
-console.log(png)
-console.log(chunked)
 
-// console.log(png.every((val) => val === 255))
-// console.log(sheeeeesh.every((val) => val === 255))
+function getColumnOfMatrix(matrix, columnIndex) {
 
-// for (let i = 0; i < png.length; i++) {
-//   console.log(png[i])
-// }
+  return matrix.map(arr => arr[columnIndex])
+}
+
+
+
 // const specimen1 = "./Songs-for-our-Generation_2015.pdf";
 // const outputDirectory = "./sheesh";
 
@@ -132,3 +119,87 @@ console.log(chunked)
 // //   // Save image as file
 // //   img.toFile('out.png');
 // // });
+
+
+
+
+
+/**
+ * @typedef {Object} imgWhitespace
+ * @property {number} topWhitespace    - Amount of white space on the top of image
+ * @property {number} bottomWhitespace - Amount of white space on the bomttom of image
+ * @property {number} leftWhitespace   - Amount of white space on the left of image
+ * @property {number} rightWhitespace  - Amount of white space on the right of image
+ */
+
+/**
+ * Return pixels of white space for top, bottom, left and right of an image
+ * @param  {string} imgPath path to image
+ * @return {imgWhitespace} amount of whitespace on the four sides of the image
+ */
+function getAmountOfWhitespace(imgPath) {
+
+  let xd = fs.readFileSync(imgPath);
+  const png = PNG.sync.read(xd);
+  const pngData = png.data
+  const booleanPixelArray = []
+  
+  // contruct boolean pixel array depending on if the pixel is white or not
+  for (let i = 0; i < pngData.length; i += 4) {
+    // skip the fourth value (alpha channel) we don't care about that
+    booleanPixelArray.push([pngData[i], pngData[i + 1], pngData[i + 2]].every((num) => num === 255))
+  }
+  const pngMatrix = []
+  for (let i = 0; i < booleanPixelArray.length; i += png.width) {
+    const row = booleanPixelArray.slice(i, i + png.width);
+    pngMatrix.push(row);
+  }
+
+  let topWhitespace;
+  let bottomWhitespace;
+
+  for (let i = 0; i < pngMatrix.length; i++) {
+    if (!pngMatrix[i].every((isWhite) => isWhite)) {
+        topWhitespace = i
+        break;
+    }
+  }
+
+  for (let i = pngMatrix.length - 1; i >= 0; i--) {
+    if (!pngMatrix[i].every((isWhite) => isWhite)) {
+      bottomWhitespace = pngMatrix.length - i - 1;
+      break
+    }
+  }
+  
+  let leftWhitespace;
+  let rightWhitespace;
+  
+  for (let i = 0; i < png.width; i++) {
+    const column = getColumnOfMatrix(pngMatrix, i);
+    const columnAllWhite = column.every((isWhite) => isWhite);
+    if (!columnAllWhite) {
+      leftWhitespace = i;
+      break;
+    }
+  }
+
+  for (let i = png.width - 1; i >= 0; i--) {
+    const column = getColumnOfMatrix(pngMatrix, i);
+    const columnAllWhite = column.every((isWhite) => isWhite);
+    if (!columnAllWhite) {
+      rightWhitespace = png.width - i - 1;
+      break;
+    }
+  }
+
+  return {
+    topWhitespace,
+    bottomWhitespace,
+    leftWhitespace,
+    rightWhitespace
+  }
+}
+
+const sheesh = getAmountOfWhitespace('SFOG_010.png');
+console.log(sheesh)
