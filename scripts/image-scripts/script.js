@@ -25,38 +25,6 @@ if (fs.existsSync(croppedFilePath)){
 }
 fs.mkdirSync(croppedFilePath);
 
-async function cropImage(imgPath, newFilePath, region) {
-  const cropped = await sharp(imgPath)
-    .extract(region);
-  return cropped.toFile(newFilePath);
-}
-
-function getCropImagePromiseArray(calculatingWhiteSpaceBar, croppingBar) {
-  return fs.readdirSync(sfogFolderPath).map((image, index) => {
-    // don't include the first 16 pages and the last page
-    if (![...Array(16).keys(), 283].includes(index)) {
-      const imagePath = `${sfogFolderPath}/${image}`;
-      // image name doesn't matter because we need to process it more anyways
-      const newFilePath = `${croppedFilePath}/${index}.png`;
-      const imageSize = sizeOf(imagePath);
-      const {
-        topWhitespace,
-        bottomWhitespace,
-        leftWhitespace, 
-        rightWhitespace
-      } = getAmountOfWhitespace(imagePath);
-      const region = {
-        left: leftWhitespace,
-        top: topWhitespace,
-        width: imageSize.width - leftWhitespace - rightWhitespace,
-        height: imageSize.height - topWhitespace - bottomWhitespace
-      };
-      calculatingWhiteSpaceBar.increment();
-      return cropImage(imagePath, newFilePath, region).then(() => croppingBar.increment());
-    }
-  })
-}
-
 async function main() {
   const bar1 = new cliProgress.SingleBar({
     format: colors.blue('{bar}') + ' {percentage}% || ETA: {eta}s || {value}/{total} images',
@@ -74,7 +42,7 @@ async function main() {
   bar1.start(267, 0);
   const cropPromises = getCropImagePromiseArray(bar1, bar2);
   bar1.stop();
-  log('')
+  log('');
   log(colors.green('CROPPING IMAGES...'));
   bar2.start(267, 0);
   await Promise.all(cropPromises);
@@ -119,14 +87,64 @@ async function main() {
 main();
 
 
+/**
+ * @typedef {Object} region describes the region to extract using pixel values
+ * @property {number} left    - zero-indexed offset from left edge
+ * @property {number} top     - zero-indexed offset from top edge
+ * @property {number} width   - width of region to extract
+ * @property {number} height  - height of region to extract
+ */
+
+/**
+ * Crop and write image to provided file path
+ * @param  {string} imgPath path to image
+ * @param  {string} newFilePath output path
+ * @param  {region} region how much to crop
+ * @return {Promise} Promise represent cropping and writing to new file 
+ */
+async function cropImage(imgPath, newFilePath, region) {
+  return sharp(imgPath)
+    .extract(region)
+    .toFile(newFilePath);
+}
+
+/**
+ * Loops through images (ignoring some) and calculates the image white space and addes the cropping task to a promise array
+ * @param  {} calculatingWhiteSpaceBar progress bar instance for calculating white space
+ * @param  {} croppingBar progress bar instance for cropping
+ * @return {Promise[]} Array of cropImage promises
+ */
+function getCropImagePromiseArray(calculatingWhiteSpaceBar, croppingBar) {
+  return fs.readdirSync(sfogFolderPath).map((image, index) => {
+    // don't include the first 16 pages and the last page
+    if (![...Array(16).keys(), 283].includes(index)) {
+      const imagePath = `${sfogFolderPath}/${image}`;
+      // image name doesn't matter because we need to process it more anyways
+      const newFilePath = `${croppedFilePath}/${index}.png`;
+      const imageSize = sizeOf(imagePath);
+      const {
+        topWhitespace,
+        bottomWhitespace,
+        leftWhitespace, 
+        rightWhitespace
+      } = getAmountOfWhitespace(imagePath);
+      const region = {
+        left: leftWhitespace,
+        top: topWhitespace,
+        width: imageSize.width - leftWhitespace - rightWhitespace,
+        height: imageSize.height - topWhitespace - bottomWhitespace
+      };
+      calculatingWhiteSpaceBar.increment();
+      return cropImage(imagePath, newFilePath, region).then(() => croppingBar.increment());
+    }
+  })
+}
 
 
 // // joinImages(['SFOG_010.png', 'SFOG_011.png'], {offset: -100}).then((img) => {
 // //   // Save image as file
 // //   img.toFile('out.png');
 // // });
-
-
 
 
 
