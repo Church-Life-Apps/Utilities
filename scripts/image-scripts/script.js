@@ -4,6 +4,7 @@ const sizeOf = require('image-size');
 const { joinImages } = require('join-images');
 const PNG = require('pngjs').PNG;
 const cliProgress = require('cli-progress');
+const colors = require('ansi-colors');
 const { 
   songsWithPageSeeping, 
   songWithTwoPages, 
@@ -11,6 +12,7 @@ const {
   pageWithThreeSongs 
 } = require('./constants');
 
+const log = console.log;
 
 const sfogFolderPath = './Songs-for-our-Generation_2015';
 const croppedFilePath = './croppedSfogImages';
@@ -56,18 +58,28 @@ function getCropImagePromiseArray(calculatingWhiteSpaceBar, croppingBar) {
 }
 
 async function main() {
-  const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-  const bar2 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+  const bar1 = new cliProgress.SingleBar({
+    format: colors.blue('{bar}') + ' {percentage}% || ETA: {eta}s || {value}/{total} images',
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+    hideCursor: true
+  });
+  const bar2 = new cliProgress.SingleBar({
+    format: colors.blue('{bar}') + ' {percentage}% || ETA: {eta}s || {value}/{total} images',
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+    hideCursor: true
+  });
+  log(colors.green('CALCULATING WHITE SPACE...'));
   bar1.start(267, 0);
   const cropPromises = getCropImagePromiseArray(bar1, bar2);
   bar1.stop();
-
-  
-  console.log('Start cropping');
+  log('')
+  log(colors.green('CROPPING IMAGES...'));
   bar2.start(267, 0);
   await Promise.all(cropPromises);
   bar2.stop();
-  console.log('Finished cropping');
+  log('Finished cropping');
 
   // if (fs.existsSync(finalImagePath)) {
   //   fs.rmSync(finalImagePath, { recursive: true, force: true });
@@ -99,9 +111,9 @@ async function main() {
   //   currentIndex += increaseIndex;
   //   currentSong += increaseSong;
   // }
-  // console.log('Starting to crop and merge images')
+  // log('Starting to crop and merge images')
   // await Promise.all(finalImagePromises);
-  // console.log('Done')
+  // log('Done')
 }
 
 main();
