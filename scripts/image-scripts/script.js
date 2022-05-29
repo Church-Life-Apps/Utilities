@@ -16,76 +16,149 @@ const log = console.log;
 
 const sfogFolderPath = './Songs-for-our-Generation_2015';
 const croppedFilePath = './croppedSfogImages';
-const finalImagePath = './sfogImages'
-const croppedWidth = 1300;
-const croppedHeight = 1682;
-
-if (fs.existsSync(croppedFilePath)){
-  fs.rmSync(croppedFilePath, { recursive: true, force: true });
-}
-fs.mkdirSync(croppedFilePath);
+const finalImagePath = './sfogImages';
+const tempFolder = './temp';
+const tempFolder2 = './temptwo';
+const paddingLeft = 50;
+const paddingRight = 50;
+const paddingTop = 50;
+const paddingBottom = 50;
+// if (fs.existsSync(croppedFilePath)){
+//   fs.rmSync(croppedFilePath, { recursive: true, force: true });
+// }
+// fs.mkdirSync(croppedFilePath);
 
 async function main() {
-  const bar1 = new cliProgress.SingleBar({
-    format: colors.blue('{bar}') + ' {percentage}% || ETA: {eta}s || {value}/{total} images',
-    barCompleteChar: '\u2588',
-    barIncompleteChar: '\u2591',
-    hideCursor: true
-  });
-  const bar2 = new cliProgress.SingleBar({
-    format: colors.blue('{bar}') + ' {percentage}% || ETA: {eta}s || {value}/{total} images',
-    barCompleteChar: '\u2588',
-    barIncompleteChar: '\u2591',
-    hideCursor: true
-  });
-  log(colors.green('CALCULATING WHITE SPACE...'));
-  bar1.start(267, 0);
-  const cropPromises = getCropImagePromiseArray(bar1, bar2);
-  bar1.stop();
-  log('');
-  log(colors.green('CROPPING IMAGES...'));
-  bar2.start(267, 0);
-  await Promise.all(cropPromises);
-  bar2.stop();
-  log('Finished cropping');
+  // const bar1 = bar();
+  // const bar2 = bar();
+  // log(colors.green('CALCULATING WHITE SPACE...'));
+  // bar1.start(267, 0);
+  // const cropPromises = getCropImagePromiseArray(bar1, bar2);
+  // bar1.stop();
+  // log('');
+  // log(colors.green('CROPPING IMAGES...'));
+  // bar2.start(267, 0);
+  // await Promise.all(cropPromises);
+  // bar2.stop();
+  // log('Finished cropping');
 
-  // if (fs.existsSync(finalImagePath)) {
-  //   fs.rmSync(finalImagePath, { recursive: true, force: true });
-  // }
-  // fs.mkdirSync(finalImagePath);
-  // let finalImagePromises = [];
-  // let currentIndex = 0;
-  // let currentSong = 1;
-  // const allCroppedImagePaths = fs.readdirSync(croppedFilePath).map((imgpath) => `${croppedFilePath}/${imgpath}`);
-
-  // while (currentIndex < allCroppedImagePaths.length) {
-  //   let increaseIndex = 1;
-  //   let increaseSong = 1;
+  if (fs.existsSync(finalImagePath)) {
+    fs.rmSync(finalImagePath, { recursive: true, force: true });
+  }
+  fs.mkdirSync(finalImagePath);
+  let finalImagePromises = [];
+  let currentIndex = 0;
+  let currentSong = 1;
+  const allCroppedImagePaths = fs.readdirSync(croppedFilePath).map((imgpath) => `${croppedFilePath}/${imgpath}`);
+  // sort the image paths to be in order
+  allCroppedImagePaths.sort((a, b) => {
+    return +a.split('/')[2].split('.')[0] - +b.split('/')[2].split('.')[0];
+  })
+  while (currentIndex < allCroppedImagePaths.length) {
+    let increaseIndex = 1;
+    let increaseSong = 1;
   
-  //   if (songsWithPageSeeping.includes(currentSong)) {
-  //     increaseIndex = 2;
-  //     increaseSong = 2;
-  //   } else if (songWithTwoPages.includes(currentSong)) {
-  //     increaseIndex = 2;
-  //   } else if (pageWithTwoSongs.includes(currentSong)) {
-  //     increaseSong = 2;
-  //   } else if (currentSong in pageWithThreeSongs) {
-  //     increaseSong = 3;
-  //   } else {
-  //     const finalSongImage = sharp(allCroppedImagePaths[currentIndex])
-  //       .toFile(`${finalImagePath}/SFOG_${String(currentSong).padStart(3, '0')}.png`);
-  //     finalImagePromises.push(finalSongImage);
-  //   }
-  //   currentIndex += increaseIndex;
-  //   currentSong += increaseSong;
-  // }
-  // log('Starting to crop and merge images')
-  // await Promise.all(finalImagePromises);
-  // log('Done')
+    if (songsWithPageSeeping.includes(currentSong)) {
+      // console.log(currentSong);
+      increaseIndex = 2;
+      increaseSong = 2;
+    } else if (songWithTwoPages.includes(currentSong)) {
+      // console.log(currentSong);
+      increaseIndex = 2;
+    } else if (currentSong in pageWithTwoSongs) {
+      // console.log(currentSong);
+      increaseSong = 2;
+    } else if (currentSong in pageWithThreeSongs) {
+      await handleThreeSongOnePage(allCroppedImagePaths[currentIndex]);
+      await cropThreeSongOnePage('./temp');
+      pushThreeSongToArry(finalImagePromises, currentSong);
+      increaseSong = 3;
+    } else {
+      finalImagePromises.push(padImageFileWithWhitespace(
+        allCroppedImagePaths[currentIndex],
+        `${finalImagePath}/SFOG_${String(currentSong).padStart(3, '0')}.png`)
+      );
+    }
+    currentIndex += increaseIndex;
+    currentSong += increaseSong;
+  }
+  log('Starting to crop and merge images');
+  await Promise.all(finalImagePromises);
+  log('Done');
 }
 
 main();
+function padImageFileWithWhitespace(filePath, outputPath) {
+  return sharp(filePath)
+    .extend({
+      top: paddingTop,
+      left: paddingLeft,
+      bottom: paddingBottom, 
+      right: paddingRight,
+      background: { r: 255, g: 255, b: 255 }
+    })
+    .toFile(outputPath);
+}
 
+async function pushThreeSongToArry(arr, currentSong) {
+  let filePaths = fs.readdirSync('./ok');
+  let index = 0;
+  for (const filePath of filePaths) {
+    const contents = await padImageFileWithWhitespace(
+      `./ok/${filePath}`,
+      `${finalImagePath}/SFOG_${String(currentSong + index).padStart(3, '0')}.png`);
+    console.log(contents);
+    index++;
+  }
+};
+
+async function cropThreeSongOnePage(filePath) {
+  return fs.readdirSync(filePath).map((image, index) => {
+    const imagePath = `${filePath}/${image}`;
+    const newFilePath = `./ok/${index + 1}.png`;
+    const imageSize = sizeOf(imagePath);
+    const {
+      topWhitespace,
+      bottomWhitespace,
+      leftWhitespace, 
+      rightWhitespace
+    } = getAmountOfWhitespace(imagePath);
+    const region = {
+      left: leftWhitespace,
+      top: topWhitespace,
+      width: imageSize.width - leftWhitespace - rightWhitespace,
+      height: imageSize.height - topWhitespace - bottomWhitespace
+    };
+    return cropImage(imagePath, newFilePath, region);
+  })
+}
+
+async function handleThreeSongOnePage(imgPath) {
+  if (fs.existsSync('./temp')) {
+    fs.rmSync('./temp', { recursive: true, force: true });
+  }
+  fs.mkdirSync('./temp');
+  const imageSize = sizeOf(imgPath);
+  const p1 = cropImage(imgPath, './temp/1.png',{
+    left: 0,
+    top: 0,
+    width: imageSize.width,
+    height: 527
+  });
+  const p2 = cropImage(imgPath, './temp/2.png',{
+    left: 0,
+    top: 527,
+    width: imageSize.width,
+    height: 500
+  });  
+  const p3 = cropImage(imgPath, './temp/3.png',{
+    left: 0,
+    top: 1027,
+    width: imageSize.width,
+    height: imageSize.height - 500 - 527
+  });
+  return Promise.all([p1, p2, p3])
+}
 
 /**
  * @typedef {Object} region describes the region to extract using pixel values
@@ -228,4 +301,13 @@ function getAmountOfWhitespace(imgPath) {
 
 function getColumnOfMatrix(matrix, columnIndex) {
   return matrix.map(arr => arr[columnIndex])
+}
+
+function bar() {
+  return new cliProgress.SingleBar({
+    format: colors.blue('{bar}') + ' {percentage}% || ETA: {eta}s || {value}/{total} images',
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+    hideCursor: true
+  });
 }
