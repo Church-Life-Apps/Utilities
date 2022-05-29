@@ -23,24 +23,24 @@ const paddingLeft = 50;
 const paddingRight = 50;
 const paddingTop = 50;
 const paddingBottom = 50;
-// if (fs.existsSync(croppedFilePath)){
-//   fs.rmSync(croppedFilePath, { recursive: true, force: true });
-// }
-// fs.mkdirSync(croppedFilePath);
+if (fs.existsSync(croppedFilePath)){
+  fs.rmSync(croppedFilePath, { recursive: true, force: true });
+}
+fs.mkdirSync(croppedFilePath);
 
 async function main() {
-  // const bar1 = bar();
-  // const bar2 = bar();
-  // log(colors.green('CALCULATING WHITE SPACE...'));
-  // bar1.start(267, 0);
-  // const cropPromises = getCropImagePromiseArray(bar1, bar2);
-  // bar1.stop();
-  // log('');
-  // log(colors.green('CROPPING IMAGES...'));
-  // bar2.start(267, 0);
-  // await Promise.all(cropPromises);
-  // bar2.stop();
-  // log('Finished cropping');
+  const bar1 = bar();
+  const bar2 = bar();
+  log(colors.green('CALCULATING WHITE SPACE...'));
+  bar1.start(267, 0);
+  const cropPromises = getCropImagePromiseArray(bar1, bar2);
+  bar1.stop();
+  log('');
+  log(colors.green('CROPPING IMAGES...'));
+  bar2.start(267, 0);
+  await Promise.all(cropPromises);
+  bar2.stop();
+  log('Finished cropping');
 
   if (fs.existsSync(finalImagePath)) {
     fs.rmSync(finalImagePath, { recursive: true, force: true });
@@ -113,7 +113,11 @@ async function pushThreeSongToArry(arr, currentSong) {
 };
 
 async function cropThreeSongOnePage(filePath) {
-  return fs.readdirSync(filePath).map((image, index) => {
+  if (fs.existsSync('./ok/')) {
+    fs.rmSync('./ok/', { recursive: true, force: true });
+  }
+  fs.mkdirSync('./ok/');
+  await Promise.all(fs.readdirSync(filePath).map((image, index) => {
     const imagePath = `${filePath}/${image}`;
     const newFilePath = `./ok/${index + 1}.png`;
     const imageSize = sizeOf(imagePath);
@@ -130,7 +134,7 @@ async function cropThreeSongOnePage(filePath) {
       height: imageSize.height - topWhitespace - bottomWhitespace
     };
     return cropImage(imagePath, newFilePath, region);
-  })
+  }))
 }
 
 async function handleThreeSongOnePage(imgPath) {
