@@ -19,14 +19,13 @@ for song in songs:
     author = song['author']
     music = song['music']
     presentationOrder = song['presentation']
-    imageUrl = f"https://raw.githubusercontent.com/Church-Life-Apps/Resources/master/resources/images/shl/SHL_{number}.png"    
+    imageUrl = f"https://raw.githubusercontent.com/Church-Life-Apps/Resources/master/resources/images/shl/SHL_{number:03}.png"    
     # call create song api
 
     headers = {'Content-Type': 'application/json'}
     data = {'id':id, 'songbookId':songbookId, 'title': title, 'number': number, 'author': author, 'music': music, 'presentationOrder': presentationOrder, 'imageUrl': imageUrl}
     print(f"Inserting Song {number}")
     requests.post('http://localhost:3000/createsong',headers=headers, data = json.dumps(data));
-   
     
     lyrics = song['lyrics']    
 
